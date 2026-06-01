@@ -160,6 +160,11 @@ function Result({ score, stage, breakdown, reading, onRetake, onHome }) {
   const low = sorted[sorted.length - 1];
   const flagCount = data.filter((d) => d.s <= 33).length;
 
+  // combination analysis — theme averages + pattern-based takeaways
+  const themes = window.themeScores ? window.themeScores(data) : {};
+  const insights = window.comboInsights ? window.comboInsights(data) : [];
+  const themeRow = [["attraction", "Attraction"], ["ambition", "Drive"], ["character", "Character"], ["partnership", "Partnership"]];
+
   const art = { firstdate: PAINT.swing(700), month: PAINT.primavera(800), threemonth: PAINT.bronzino(700), year: PAINT.klimt(700) }[stage];
 
   return (
@@ -215,6 +220,28 @@ function Result({ score, stage, breakdown, reading, onRetake, onHome }) {
               <span className="sc-name">{d.name}{d.w < 1 ? <em className="sc-half"> ½</em> : null}</span>
               <span className="sc-bar"><span className="sc-fill" style={{ width: d.s + "%", background: bandColor(d.s) }}></span></span>
               <span className="sc-num" style={{ color: bandColor(d.s) }}>{d.s}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- combination analysis ---- */}
+      <div className="rs-section">
+        <div className="rs-sec-head"><span className="eyebrow">The pattern</span><h2 className="serif rs-sec-title">What the combination says</h2></div>
+        <div className="rs-themes">
+          {themeRow.map(([k, l]) => (themes[k] != null ? (
+            <div className="rs-theme" key={k}>
+              <span className="rs-theme-lbl">{l}</span>
+              <span className="rs-theme-bar"><span className="rs-theme-fill" style={{ width: themes[k] + "%", background: bandColor(themes[k]) }}></span></span>
+              <span className="rs-theme-num" style={{ color: bandColor(themes[k]) }}>{themes[k]}</span>
+            </div>
+          ) : null))}
+        </div>
+        <div className="rs-insights">
+          {insights.map((ins, i) => (
+            <div className="rs-insight" key={i}>
+              <span className="eyebrow rs-insight-tag">{ins.tag}</span>
+              <p className="serif rs-insight-text">{ins.text}</p>
             </div>
           ))}
         </div>

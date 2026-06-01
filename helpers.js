@@ -144,5 +144,60 @@
       copy: "We say this with so much love: this is not a person, it's a cautionary tale you're volunteering for. You already know. Block, breathe, delete the thread, and go be someone else's green flag. Future-you is begging." }
   ];
 
-  Object.assign(window, { IMG: IMG, PAINT: PAINT, STAGES: STAGES, TRAITS: TRAITS, getQuestions: getQuestions, RESULTS: RESULTS });
+  // ---- Combination analysis: read the relationships BETWEEN trait groups,
+  // not just the overall average. Each theme averages its answered traits. ----
+  var THEMES = {
+    attraction:  { label: "Attraction",  ids: ["attractive", "chemistry", "intimacy", "desire"] },
+    ambition:    { label: "Drive",       ids: ["drive", "ambition", "competence", "achievement"] },
+    character:   { label: "Character",   ids: ["conscious", "humble", "optimism", "growth", "resilience", "trust", "repair"] },
+    partnership: { label: "Partnership", ids: ["spark", "geo", "affable", "secure", "generous", "mindbody", "depth", "prioritizes", "worldview", "closerel", "harmony", "money", "lifestyle"] }
+  };
+
+  function themeScores(data) {
+    var byId = {};
+    (data || []).forEach(function (d) { byId[d.id] = d.s; });
+    var out = { _byId: byId };
+    Object.keys(THEMES).forEach(function (k) {
+      var vals = THEMES[k].ids.map(function (id) { return byId[id]; }).filter(function (v) { return v != null; });
+      out[k] = vals.length ? Math.round(vals.reduce(function (a, b) { return a + b; }, 0) / vals.length) : null;
+    });
+    return out;
+  }
+
+  // Returns up to 3 tailored takeaways based on how the themes relate to each other.
+  function comboInsights(data) {
+    if (!data || !data.length) return [];
+    var T = themeScores(data), byId = T._byId;
+    var A = T.attraction, Am = T.ambition, C = T.character, P = T.partnership;
+    var HI = 68, LO = 45, out = [];
+    function add(tag, text) { out.push({ tag: tag, text: text }); }
+
+    if (byId.trust != null && byId.trust < 38) {
+      add("The trust problem", "Forget the average — the trust number IS the verdict. Everything else can be a 10, but if you're quietly fact-checking them, that's not a relationship, it's surveillance. This is the one you don't 'work on,' you walk on.");
+    }
+    if (A != null && C != null) {
+      if (A >= HI && C < LO) add("Chemistry vs. character", "The attraction is doing Olympic-level heavy lifting here. You're magnetised to someone your gut doesn't fully trust — thrilling, sure, but that's a fantastic trailer for a genuinely bad movie.");
+      else if (C >= HI && A < LO) add("Catch on paper", "On paper, a real catch — kind, steady, the type your friends nod approvingly at. But you're rating the résumé, not the romance. Forcing a spark that won't catch is just the scenic route to a great friendship.");
+    }
+    if (Am != null && P != null) {
+      if (Am >= HI && P < LO) add("Empire, no 'us'", "All engine, no passenger seat. They're building something huge and you're currently a line item in the budget. Make sure the life they're sprinting toward actually has a chair with your name on it.");
+      else if (P >= HI && Am < LO) add("Cozy but coasting", "Warm, present, easy to be around — and going precisely nowhere, fast. Lovely for now; just be honest about whether 'comfortable' is your forever or your settling.");
+    }
+    if (A != null && Am != null && A >= HI && Am >= HI && out.length < 3) {
+      add("Magnetic and motivated", "Unreal highlight reel — the chemistry crackles and the drive is real. The only open question is whether they show up on a boring, unglamorous Tuesday, not just the big nights out.");
+    }
+    var present = [A, Am, C, P].filter(function (v) { return v != null; });
+    if (present.length >= 3) {
+      var mn = Math.min.apply(null, present), mx = Math.max.apply(null, present);
+      if (out.length === 0 && mn >= HI) add("No notes", "Annoyingly, the data just shrugs and says 'yeah, this one's good.' Attraction, drive, character, partnership — all lit. The rare clean sweep. Try very hard not to self-sabotage it.");
+      else if (out.length === 0 && mx < LO) add("Quietly not working", "There's no single villain here — it's just softly not landing across the board. That flatness is actually the clearest answer you'll get all day. Believe it.");
+      else if (mx - mn >= 32 && out.length < 3) add("Two different people", "Huge spread. They're spectacular at some things and a real liability at others — you're not confused, you're just averaging two very different partners into one hopeful number.");
+    }
+    if (out.length === 0) {
+      add("Steady, unspectacular", "No screaming strengths, no blaring alarms — a solid, slightly beige middle. Fine is fine. Just make sure you're choosing this, not defaulting to it because leaving sounds like effort.");
+    }
+    return out.slice(0, 3);
+  }
+
+  Object.assign(window, { IMG: IMG, PAINT: PAINT, STAGES: STAGES, TRAITS: TRAITS, getQuestions: getQuestions, RESULTS: RESULTS, THEMES: THEMES, themeScores: themeScores, comboInsights: comboInsights });
 })();
