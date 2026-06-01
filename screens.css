@@ -109,6 +109,24 @@
 .pk-blurb { font-size: 17px; line-height: 1.35; color: var(--fg-dim); font-style: italic; flex: 1; }
 .pk-go { font-weight: 700; color: var(--accent); margin-top: 14px; font-size: 15px; }
 
+/* ============ Gate (pre-results login) ============ */
+.gate { padding: 30px 28px 130px; max-width: 620px; }
+.gate-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+.gate-h1 { font-size: clamp(40px, 6vw, 78px); margin: 0; }
+.gate-sub { font-size: clamp(18px, 2vw, 23px); font-style: italic; color: var(--blush); margin: 10px 0 28px; }
+.gate-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(251,239,230,0.14); border-radius: var(--r-3); padding: 24px; }
+.gate-label { display: block; font-family: var(--font-ui); font-weight: 700; font-size: 15px; color: var(--fg); margin-bottom: 10px; }
+.gate-label span { font-weight: 500; color: var(--fg-dim); }
+.gate-who { width: 100%; }
+.gate-loggedin { font-size: 16px; color: var(--fg-dim); margin: 16px 0 0; }
+.gate-loggedin b { color: var(--accent); }
+.gate-auth { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(251,239,230,0.12); }
+.gate-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.gate-fields .lq-input { width: 100%; }
+.gate-err { color: #ff8a8a; font-size: 14px; margin: 0 0 10px; }
+.gate-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 24px; }
+.gate .lq-google { align-items: stretch; margin-bottom: 16px; }
+
 /* ============ Quiz ============ */
 .qz { padding: 26px 28px 130px; max-width: 880px; }
 .qz-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 40px; }

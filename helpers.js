@@ -132,16 +132,16 @@
 
   // Result archetypes, chosen by score band.
   var RESULTS = [
-    { min: 86, title: "Certified Soulmate", emoji: "💞", verdict: "Soulmate Material",
-      copy: "Stop the quiz. Marry them. This is the rare, unhinged-in-a-good-way kind of right. Protect this at all costs." },
-    { min: 65, title: "The Slow Burn", emoji: "🔥", verdict: "Promising",
-      copy: "Not fireworks — embers. The kind that actually keep you warm in February. Keep feeding it and don't self-sabotage." },
-    { min: 42, title: "The Situationship Survivor", emoji: "🌫️", verdict: "It's Complicated",
-      copy: "There's something here, but it's foggy. Define the relationship before you define a future. You deserve clarity, not crumbs." },
-    { min: 20, title: "Cute, But Chaos", emoji: "🎢", verdict: "Proceed With Caution",
-      copy: "The chemistry is loud and so are the warning signs. Fun? Yes. Forever? The data is nervous." },
-    { min: 0,  title: "Red Flag Royalty", emoji: "🚩", verdict: "Babe, Run",
-      copy: "We're saying this with love: this one's a parade. Block, breathe, and reclaim your peace. You'll thank us." }
+    { min: 88, title: "Certified Soulmate", emoji: "💞", verdict: "Soulmate Material",
+      copy: "Okay, show-off. This is the disgustingly-in-love, ruin-everyone-else's-standards kind of right. If you sabotage this one out of boredom or fear, that's a YOU problem — don't you dare. Lock it down." },
+    { min: 70, title: "The Slow Burn", emoji: "🔥", verdict: "Genuinely Promising",
+      copy: "Not fireworks — embers, and embers are how people actually stay warm in February. The bones are good. The only thing that kills this is your own commitment-phobia, so quit waiting for a flaw to justify bailing." },
+    { min: 48, title: "The Situationship Survivor", emoji: "🌫️", verdict: "It's... Complicated",
+      copy: "Be honest: you already knew it was foggy, you just wanted a second opinion to feel less crazy. There's a real spark in here somewhere, but you're surviving on crumbs and calling it a meal. Define it or free yourself." },
+    { min: 25, title: "Cute, But Chaos", emoji: "🎢", verdict: "Proceed With Caution",
+      copy: "The chemistry is screaming and so are the red flags — and right now the flags are winning. Fun? Obviously. A future? The data just put its head in its hands. Enjoy the ride, but stop pretending it's a destination." },
+    { min: 0,  title: "Red Flag Royalty", emoji: "🚩", verdict: "Babe. Run.",
+      copy: "We say this with so much love: this is not a person, it's a cautionary tale you're volunteering for. You already know. Block, breathe, delete the thread, and go be someone else's green flag. Future-you is begging." }
   ];
 
   Object.assign(window, { IMG: IMG, PAINT: PAINT, STAGES: STAGES, TRAITS: TRAITS, getQuestions: getQuestions, RESULTS: RESULTS });

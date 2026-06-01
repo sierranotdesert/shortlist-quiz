@@ -42,6 +42,10 @@ function pctFrom(ref, clientX) {
 }
 
 /* ---------- Cards ---------- */
+// Harsher than linear: only the ideal answer scores high, "good enough" is a real
+// step down, and the mediocre option lands well below the midpoint.
+const CARD_PCT = { 4: 92, 3: 55, 1: 22, 0: 4 };
+function cardPct(score) { return CARD_PCT[score] != null ? CARD_PCT[score] : (score / 4) * 100; }
 function CardsQ({ q, onAnswer }) {
   const [sel, setSel] = useState(null);
   return (
@@ -54,7 +58,7 @@ function CardsQ({ q, onAnswer }) {
           </button>
         ))}
       </div>
-      <QNext show={sel !== null} onClick={() => onAnswer((q.options[sel].score / 4) * 100)} />
+      <QNext show={sel !== null} onClick={() => onAnswer(cardPct(q.options[sel].score))} />
     </div>
   );
 }
@@ -112,12 +116,14 @@ function SwipeQ({ q, stage, onAnswer }) {
   const art = { firstdate: PAINT.swing(700), month: PAINT.venus(700), threemonth: PAINT.bronzino(700), year: PAINT.klimt(700) };
   const down = (e) => { startX.current = e.clientX; window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); };
   const mv = (e) => { if (startX.current != null) setDx(e.clientX - startX.current); };
+  // A "yes" is good but not a flawless 100; a "no" is a real ding, not a flat 0.
+  const YES = 85, NO = 12;
   const up = () => {
     window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up);
-    if (dx > 110) commit(100); else if (dx < -110) commit(0); else setDx(0);
+    if (dx > 110) commit(YES); else if (dx < -110) commit(NO); else setDx(0);
     startX.current = null;
   };
-  const commit = (score) => { setDx(score === 100 ? 600 : -600); setTimeout(() => onAnswer(score), 260); };
+  const commit = (score) => { setDx(score >= 50 ? 600 : -600); setTimeout(() => onAnswer(score), 260); };
   const rot = dx / 18;
   return (
     <div className="q-swipe-wrap">
@@ -130,8 +136,8 @@ function SwipeQ({ q, stage, onAnswer }) {
         </div>
       </div>
       <div className="swipe-btns">
-        <button className="swipe-btn no" onClick={() => commit(0)}>{q.no}</button>
-        <button className="swipe-btn yes" onClick={() => commit(100)}>{q.yes}</button>
+        <button className="swipe-btn no" onClick={() => commit(NO)}>{q.no}</button>
+        <button className="swipe-btn yes" onClick={() => commit(YES)}>{q.yes}</button>
       </div>
       <p className="serif q-note">Drag the portrait, or tap. Your gut already knows.</p>
     </div>

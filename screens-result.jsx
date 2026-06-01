@@ -4,98 +4,139 @@ function pickResult(score) {
   return RESULTS.find((r) => score >= r.min) || RESULTS[RESULTS.length - 1];
 }
 
-/* Auto-saves this reading at the end. You can opt out, name who it's about
-   ("do it for someone else"), and jump to your personal ranking. */
-function ResultSaver({ entry }) {
+/* Pre-results gate: log in (email/password, Google, or a username) and name who
+   you're tracking — BEFORE the verdict. You can also skip and just see results. */
+function Gate({ reading, onReveal, onBack }) {
   const { active } = window.useProfile();
-  const [who, setWho] = useState("");
-  const [yourName, setYourName] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [out, setOut] = useState(false);
-  const did = useRef(false);
-  // Stable snapshot with one id, so re-saves/edits hit the same local + remote row.
-  const eRef = useRef(null);
-  if (!eRef.current) eRef.current = Object.assign({ id: window.LQ.uid(), who: "" }, entry);
-  const E = eRef.current;
+  const [who, setWho] = useState((reading && reading.who) || "");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [mode, setMode] = useState("login");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const hasSb = !!(window.LQ.sbBase && window.LQ.sbBase());
 
-  // Logged in → auto-save once on arrival.
-  useEffect(() => {
-    if (did.current || out || !active) return;
-    did.current = true; setSaved(true);
-    window.LQ.save(active, E);
-  }, [active]);
-
-  // Keep the saved reading's subject in sync as you type.
-  useEffect(() => {
-    if (saved && active) window.LQ.patchLast(active, { who: window.LQ.normName(who) });
-  }, [who]);
-
-  const openRanking = () => window.dispatchEvent(new Event("lq-open-ranking"));
-  const undo = () => { if (active) window.LQ.removeLast(active); did.current = true; setSaved(false); setOut(true); };
-  const redo = () => { if (active) { window.LQ.save(active, Object.assign({}, E, { who: window.LQ.normName(who) })); did.current = true; setSaved(true); setOut(false); } };
-  const saveAs = () => {
-    const me = window.LQ.setActive(yourName);
-    if (me) { window.LQ.save(me, Object.assign({}, E, { who: window.LQ.normName(who) })); did.current = true; setSaved(true); setOut(false); }
+  const reveal = () => {
+    const w = window.LQ.normName(who);
+    if (reading) reading.who = w;
+    const id = window.LQ.getActive();
+    if (id && reading) window.LQ.save(id, Object.assign({}, reading, { who: w }));
+    onReveal();
+  };
+  const doEmail = () => {
+    if (!email || !pw || busy) return;
+    setBusy(true); setErr("");
+    window.LQ.emailAuth(mode, email, pw)
+      .then(() => setBusy(false))
+      .catch((e) => { setErr(String(e.message || e)); setBusy(false); });
   };
 
-  // Logged in + saved (default at the end).
-  if (active && saved) {
-    return (
-      <div className="rs-save">
-        <span className="eyebrow" style={{ color: "var(--accent)" }}>Saved to {active}'s log ♡</span>
-        <p className="serif rs-save-lbl">Who is this reading about?</p>
-        <input className="lq-input" maxLength={24} placeholder="their name (optional)" value={who}
-          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 24))} />
-        <div className="rs-save-row">
-          <button className="btn btn-ghost btn-sm" onClick={openRanking}>See your ranking ♡</button>
-          <button className="lq-signout" onClick={undo}>Don't save this one</button>
-        </div>
-      </div>
-    );
-  }
-  // Logged in but opted out.
-  if (active && out) {
-    return (
-      <div className="rs-save">
-        <span className="eyebrow" style={{ color: "var(--fg-dim)" }}>Not saved</span>
-        <p className="serif rs-save-lbl" style={{ margin: "0 0 12px" }}>This reading wasn't added to your log.</p>
-        <button className="btn btn-primary btn-sm" onClick={redo}>Save it anyway ♡</button>
-      </div>
-    );
-  }
-  // Logged out, skipped.
-  if (!active && out) {
-    return (
-      <div className="rs-save">
-        <span className="eyebrow" style={{ color: "var(--fg-dim)" }}>Not saved</span>
-        <p className="serif rs-save-lbl" style={{ margin: "0 0 12px" }}>Add a name any time to start keeping a log.</p>
-        <button className="btn btn-primary btn-sm" onClick={() => setOut(false)}>Save this reading ♡</button>
-      </div>
-    );
-  }
-  // Logged out → offer to save (for yourself, or for someone else).
   return (
-    <div className="rs-save">
-      <span className="eyebrow" style={{ color: "var(--accent)" }}>Save this reading ♡</span>
-      <p className="serif rs-save-lbl">Log it to track them over time and build your ranking:</p>
-      <div className="rs-save-fields">
-        <input className="lq-input" maxLength={24} placeholder="your name" value={yourName}
-          onChange={(e) => setYourName(e.target.value.replace(/^\s+/, "").slice(0, 24))}
-          onKeyDown={(e) => { if (e.key === "Enter") saveAs(); }} />
-        <input className="lq-input" maxLength={24} placeholder="who you're rating (optional)" value={who}
-          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 24))}
-          onKeyDown={(e) => { if (e.key === "Enter") saveAs(); }} />
+    <div className="screen fade-enter gate wrap">
+      <header className="gate-top">
+        <button className="btn btn-ghost btn-sm" onClick={onBack}>← Back</button>
+        <span className="eyebrow">One last thing</span>
+      </header>
+      <h1 className="display gate-h1">BEFORE THE VERDICT</h1>
+      <p className="serif gate-sub">Save this reading so you can track them over time — and rank everyone you're seeing.</p>
+
+      <div className="gate-card">
+        <label className="gate-label">Who are you rating? <span>(private — just for your eyes)</span></label>
+        <input className="lq-input gate-who" maxLength={40} placeholder={"name or initials, e.g. “A.M.”"} value={who}
+          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 40))}
+          onKeyDown={(e) => { if (e.key === "Enter" && active) reveal(); }} />
+
+        {active ? (
+          <p className="gate-loggedin">Saving to <b>{active}</b>'s log.</p>
+        ) : (
+          <div className="gate-auth">
+            <window.GoogleSignIn />
+            {hasSb ? (
+              <>
+                <div className="gate-fields">
+                  <input className="lq-input" type="email" autoComplete="email" placeholder="email" value={email}
+                    onChange={(e) => setEmail(e.target.value)} />
+                  <input className="lq-input" type="password" autoComplete="current-password" placeholder="password" value={pw}
+                    onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doEmail(); }} />
+                </div>
+                {err ? <p className="gate-err">{err}</p> : null}
+                <div className="rs-save-row">
+                  <button className="btn btn-primary btn-sm" disabled={busy || !email || !pw} onClick={doEmail}>
+                    {busy ? "…" : mode === "login" ? "Log in" : "Create account"}
+                  </button>
+                  <button className="lq-signout" onClick={() => { setErr(""); setMode(mode === "login" ? "signup" : "login"); }}>
+                    {mode === "login" ? "New here? Create an account" : "Have an account? Log in"}
+                  </button>
+                </div>
+                <div className="lq-or"><span>or just use a name</span></div>
+              </>
+            ) : null}
+            <window.NameForm primary placeholder="a username" onSave={(v) => window.LQ.setActive(v)} />
+          </div>
+        )}
       </div>
-      <div className="rs-save-row">
-        <button className="btn btn-primary btn-sm" disabled={!yourName.trim()} onClick={saveAs}>Save ♡</button>
-        <button className="lq-signout" onClick={() => setOut(true)}>Skip</button>
+
+      <div className="gate-actions">
+        <button className="btn btn-primary" onClick={reveal}>Reveal my verdict ♡</button>
+        {active ? null : <button className="btn btn-ghost" onClick={reveal}>Skip — just show me</button>}
       </div>
     </div>
   );
 }
+window.Gate = Gate;
+
+/* Result-screen status: confirms the save made at the gate, lets you rename the
+   subject, jump to your ranking, remove it, or save if you logged in after. */
+function ResultSavedBar({ reading }) {
+  const { active } = window.useProfile();
+  const [who, setWho] = useState((reading && reading.who) || "");
+  if (!reading) return null;
+  const list = active ? window.LQ.history(active) : [];
+  const isSaved = !!(active && list[0] && list[0].id === reading.id);
+
+  useEffect(() => {
+    if (isSaved && active) window.LQ.patchLast(active, { who: window.LQ.normName(who) });
+  }, [who]);
+
+  const openRanking = () => window.dispatchEvent(new Event("lq-open-ranking"));
+
+  if (isSaved) {
+    return (
+      <div className="rs-save">
+        <span className="eyebrow" style={{ color: "var(--accent)" }}>Saved to {active}'s log ♡</span>
+        <p className="serif rs-save-lbl">Tracking as:</p>
+        <input className="lq-input" maxLength={40} placeholder="private name or initials" value={who}
+          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 40))} />
+        <div className="rs-save-row">
+          <button className="btn btn-ghost btn-sm" onClick={openRanking}>See your ranking ♡</button>
+          <button className="lq-signout" onClick={() => window.LQ.removeLast(active)}>Remove from log</button>
+        </div>
+      </div>
+    );
+  }
+  if (active) {
+    return (
+      <div className="rs-save">
+        <span className="eyebrow" style={{ color: "var(--accent)" }}>Save this reading ♡</span>
+        <p className="serif rs-save-lbl">Tracking as:</p>
+        <input className="lq-input" maxLength={40} placeholder="private name or initials" value={who}
+          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 40))} />
+        <button className="btn btn-primary btn-sm" onClick={() => window.LQ.save(active, Object.assign({}, reading, { who: window.LQ.normName(who) }))}>Save to {active}'s log ♡</button>
+      </div>
+    );
+  }
+  return (
+    <div className="rs-save">
+      <span className="eyebrow" style={{ color: "var(--fg-dim)" }}>Not saved</span>
+      <p className="serif rs-save-lbl" style={{ margin: 0 }}>You skipped logging this one. Log in with the ♡ button (bottom-left) to keep your readings and ranking.</p>
+    </div>
+  );
+}
+window.ResultSavedBar = ResultSavedBar;
+
 function bandColor(s) { return s >= 67 ? "#36d27a" : s >= 40 ? "#f5b942" : "#ff5c6b"; }
 
-function Result({ score, stage, breakdown, onRetake, onHome }) {
+function Result({ score, stage, breakdown, reading, onRetake, onHome }) {
   const r = pickResult(score);
   const stageObj = STAGES.find((s) => s.id === stage) || STAGES[0];
   const [fill, setFill] = useState(0);
@@ -148,7 +189,7 @@ function Result({ score, stage, breakdown, onRetake, onHome }) {
             </div>
           </div>
           <p className="serif rs-copy dropcap">{r.copy}</p>
-          <ResultSaver entry={{ t: Date.now(), stage, score, stageLabel: stageObj.label, verdict: r.verdict, emoji: r.emoji }} />
+          <ResultSavedBar reading={reading} />
         </div>
         <div className="rs-right">
           <div className="frame rs-frame frame-photo-tint">
@@ -168,8 +209,8 @@ function Result({ score, stage, breakdown, onRetake, onHome }) {
       <div className="rs-section">
         <div className="rs-sec-head"><span className="eyebrow">The receipts</span><h2 className="serif rs-sec-title">Every trait, scored</h2></div>
         <div className="rs-scorecard">
-          {data.map((d) => (
-            <div className="sc-row" key={d.id}>
+          {data.map((d, i) => (
+            <div className="sc-row" key={d.id + "-" + i}>
               <span className="sc-ico">{d.icon}</span>
               <span className="sc-name">{d.name}{d.w < 1 ? <em className="sc-half"> ½</em> : null}</span>
               <span className="sc-bar"><span className="sc-fill" style={{ width: d.s + "%", background: bandColor(d.s) }}></span></span>
@@ -183,20 +224,20 @@ function Result({ score, stage, breakdown, onRetake, onHome }) {
       <div className="rs-advice-grid">
         <div className="rs-flagbox green">
           <span className="eyebrow" style={{ color: "#36d27a" }}>Green flags — lean in</span>
-          {greens.length ? greens.map((d) => (
-            <div className="rs-flag-line" key={d.id}><span>{d.icon}</span><span className="serif">{d.name}</span><b>{d.s}</b></div>
+          {greens.length ? greens.map((d, i) => (
+            <div className="rs-flag-line" key={d.id + "-" + i}><span>{d.icon}</span><span className="serif">{d.name}</span><b>{d.s}</b></div>
           )) : <p className="serif rs-empty">Slim pickings up here, babe. Be honest with yourself.</p>}
         </div>
         <div className="rs-flagbox red">
           <span className="eyebrow" style={{ color: "#ff5c6b" }}>Watch-outs — handle with care</span>
-          {reds.length ? reds.map((d) => (
-            <div className="rs-flag-line" key={d.id}><span>{d.icon}</span><span className="serif">{d.name}</span><b>{d.s}</b></div>
+          {reds.length ? reds.map((d, i) => (
+            <div className="rs-flag-line" key={d.id + "-" + i}><span>{d.icon}</span><span className="serif">{d.name}</span><b>{d.s}</b></div>
           )) : <p className="serif rs-empty">Genuinely no red flags. Suspicious, but we'll allow it.</p>}
         </div>
         <div className="rs-coach">
           <span className="eyebrow" style={{ color: "var(--ember)" }}>Cupid's unsolicited advice</span>
-          <p className="serif rs-coach-line"><strong>Strongest:</strong> {top.name} ({top.s}). {top.s >= 70 ? "Whatever's working here, protect it — it's rarer than you think." : "Even your best score is lukewarm. That's the headline."}</p>
-          <p className="serif rs-coach-line"><strong>Weakest:</strong> {low.name} ({low.s}). {low.s <= 33 ? "That's not a vibe, that's a conversation. Have it before you get more attached." : low.s <= 55 ? "Keep an eye on this one — it's the crack the relationship will widen." : "Even your low score is decent. Genuinely promising."}</p>
+          <p className="serif rs-coach-line"><strong>Strongest:</strong> {top.name} ({top.s}). {top.s >= 70 ? "Whatever's working here, protect it with your life — most people never get this one to light up." : "Sit with this: your BEST score is this lukewarm. That's not a strength, that's the ceiling. Read that again."}</p>
+          <p className="serif rs-coach-line"><strong>Weakest:</strong> {low.name} ({low.s}). {low.s <= 33 ? "This isn't a quirk, it's a fault line — and you keep stepping around it like it'll fix itself. It won't. Name it out loud before you get one year deeper." : low.s <= 55 ? "This is the exact crack the whole thing splits along in a year. Watch it like it owes you money." : "Even your weakest link is solid. Honestly? Annoyingly good problem to have."}</p>
           <p className="serif rs-coach-line rs-coach-take">{adviceTake(score, stage)}</p>
         </div>
       </div>
@@ -212,11 +253,11 @@ function Result({ score, stage, breakdown, onRetake, onHome }) {
 
 function adviceTake(score, stage) {
   const yr = stage === "year";
-  if (score >= 86) return yr ? "A year in and scoring this high? This is the one your friends will be insufferably happy about. Don't overthink it." : "Early, but this is rare air. Keep showing up and let it cook.";
-  if (score >= 65) return "Real potential. The bones are good — the work now is consistency, not chemistry. Stop waiting for a reason to bail.";
-  if (score >= 42) return "Genuinely a coin-flip. Define what you actually want, then see if they're building it with you — or just keeping you around. No more vibes-only.";
-  if (score >= 20) return "The fun is loud and the warnings are louder. Have one honest conversation; if nothing changes, believe the data, not the butterflies.";
-  return "We say this with love: the score isn't shy. Protect your peace, keep your standards, and free up the calendar for someone who clears the bar.";
+  if (score >= 88) return yr ? "A whole year in and STILL scoring this high? Stop taking quizzes about it and go be obnoxiously happy. This is the one your friends will pretend not to be jealous of." : "Stupidly early to be this good — which means either it's the real thing or you're love-drunk. Keep showing up and let it cook before you propose, you menace.";
+  if (score >= 70) return "This is genuinely promising, and the only documented threat to it is you bailing the second it gets comfortable. The bones are good. Stop auditioning for reasons to leave.";
+  if (score >= 48) return "A literal coin-flip wearing a cute outfit. Decide what you actually want, then watch whether they build it with you or just keep you on the bench. No more 'but the vibes though.'";
+  if (score >= 25) return "The butterflies are loud and the data is wincing. Have ONE honest conversation. If nothing changes, believe the score, not the serotonin — you're smarter than this and you know it.";
+  return "Saying this as your meanest, most loving friend: the score is not being shy and neither will I. This is a parade, not a partner. Protect your peace, raise your bar, and give that calendar slot to someone who actually clears it.";
 }
 
 Object.assign(window, { Result, pickResult, bandColor, adviceTake });

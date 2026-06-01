@@ -4,7 +4,7 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "homeVariant": "collage",
   "accent": "#FF5C8A",
   "heartCursor": true,
-  "stickers": "med",
+  "stickers": "low",
   "savage": true
 }/*EDITMODE-END*/;
 
@@ -14,6 +14,7 @@ function App() {
   const [stage, setStage] = useState("firstdate");
   const [score, setScore] = useState(0);
   const [breakdown, setBreakdown] = useState(null);
+  const [reading, setReading] = useState(null);
 
   useEffect(() => { document.documentElement.style.setProperty("--accent", t.accent); }, [t.accent]);
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
@@ -28,7 +29,14 @@ function App() {
 
   const goStage = (id) => { setStage(id); setScreen("quiz"); };
   const startQuiz = (id) => { setStage(id); setScreen("quiz"); };
-  const finish = (s, st, bd) => { setScore(s); setStage(st); setBreakdown(bd || null); setScreen("result"); };
+  // Quiz done → build a stable reading, then gate (login + who) before the verdict.
+  const finish = (s, st, bd) => {
+    setScore(s); setStage(st); setBreakdown(bd || null);
+    const r = window.pickResult ? window.pickResult(s) : { verdict: "", emoji: "" };
+    const stObj = STAGES.find((x) => x.id === st) || STAGES[0];
+    setReading({ id: window.LQ.uid(), t: Date.now(), stage: st, stageLabel: stObj.label, score: s, verdict: r.verdict, emoji: r.emoji, who: "" });
+    setScreen("gate");
+  };
 
   const Home = t.homeVariant === "gallery" ? HomeA : HomeB;
 
@@ -41,7 +49,8 @@ function App() {
       {screen === "home" && <Home onBegin={() => setScreen("picker")} goStage={goStage} />}
       {screen === "picker" && <Picker onPick={startQuiz} onBack={() => setScreen("home")} />}
       {screen === "quiz" && <Quiz stage={stage} onDone={finish} onBack={() => setScreen("picker")} />}
-      {screen === "result" && <Result score={score} stage={stage} breakdown={breakdown} onRetake={() => setScreen("picker")} onHome={() => setScreen("home")} />}
+      {screen === "gate" && <Gate reading={reading} onReveal={() => setScreen("result")} onBack={() => setScreen("quiz")} />}
+      {screen === "result" && <Result score={score} stage={stage} breakdown={breakdown} reading={reading} onRetake={() => setScreen("picker")} onHome={() => setScreen("home")} />}
 
       {screen === "home" && (
         <div className="variant-switch">

@@ -11,7 +11,7 @@
     try { return JSON.parse(localStorage.getItem(KEY_HIST) || "{}") || {}; } catch (e) { return {}; }
   }
   function writeHist(h) { try { localStorage.setItem(KEY_HIST, JSON.stringify(h)); } catch (e) {} }
-  function normName(s) { return String(s || "").replace(/\s+/g, " ").trim().slice(0, 24); }
+  function normName(s) { return String(s || "").replace(/\s+/g, " ").trim().slice(0, 64); }
   function ping() { window.dispatchEvent(new Event("lq-profile")); }
   function uid() {
     try { if (crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
@@ -21,13 +21,17 @@
   // Optional central collection. Each saved reading is upserted (by client_id, so
   // edits to "who" update the same row) into a Supabase table. Fire-and-forget:
   // failures never block the local save. No-op until SUPABASE_URL/KEY are set.
-  function remoteOn() {
-    return window.SUPABASE_URL && window.SUPABASE_ANON_KEY && String(window.SUPABASE_URL).indexOf("http") === 0;
+  // Project origin, tolerant of a pasted URL that already includes /rest/v1.
+  function sbBase() {
+    let u = String(window.SUPABASE_URL || "").trim();
+    if (u.indexOf("http") !== 0) return "";
+    return u.replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
   }
+  function remoteOn() { return !!sbBase() && !!window.SUPABASE_ANON_KEY; }
   function logRemote(user, e) {
     if (!remoteOn() || !e) return;
     try {
-      fetch(String(window.SUPABASE_URL).replace(/\/$/, "") + "/rest/v1/readings?on_conflict=client_id", {
+      fetch(sbBase() + "/rest/v1/readings?on_conflict=client_id", {
         method: "POST",
         headers: {
           apikey: window.SUPABASE_ANON_KEY,
@@ -46,6 +50,26 @@
   const LQ = {
     normName,
     uid,
+    sbBase,
+    // Email + password via Supabase Auth. mode: "login" | "signup". On success the
+    // signed-in email becomes the active identity. Throws with a readable message.
+    emailAuth: function (mode, email, password) {
+      var base = sbBase();
+      if (!base) return Promise.reject(new Error("Email login needs the database configured."));
+      var url = base + (mode === "signup" ? "/auth/v1/signup" : "/auth/v1/token?grant_type=password");
+      return fetch(url, {
+        method: "POST",
+        headers: { apikey: window.SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: password })
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          if (!r.ok) throw new Error(d.msg || d.error_description || d.error_code || d.error || "Login failed");
+          try { if (d.access_token) localStorage.setItem("lovequiz.token", d.access_token); } catch (e) {}
+          LQ.setActive((d.user && d.user.email) || email);
+          return d;
+        });
+      });
+    },
     getActive() { try { return localStorage.getItem(KEY_ACTIVE) || ""; } catch (e) { return ""; } },
     setActive(name) {
       const v = normName(name);

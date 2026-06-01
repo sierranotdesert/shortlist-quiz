@@ -67,19 +67,21 @@ function HeartSvg({ size, fill }) {
 /* The scattered sticker layer. density: 'low' | 'med' | 'high'. seed picks layout. */
 function StickerLayer({ density, paintings }) {
   if (density === "off") return null;
+  // Positions hug the far left/right margins so stickers don't sit on top of the
+  // centered text, buttons, or the bottom-row controls (login pill, switcher, tweaks).
   const all = [
-    { id: "s-heart1", el: <div className="sticker shape" />, render: <HeartSvg size={46} fill="var(--pink)" />, x: 0.08, y: 0.7, rot: -12, kind: "shape" },
-    { id: "s-emoji-love", emoji: "😍", x: 0.9, y: 0.18, rot: 10 },
-    { id: "s-rose", emoji: "🌹", x: 0.86, y: 0.74, rot: -8 },
-    { id: "s-wine", emoji: "🍷", x: 0.05, y: 0.32, rot: 8 },
-    { id: "s-flag", emoji: "🚩", x: 0.78, y: 0.46, rot: 6 },
-    { id: "s-spark", emoji: "✨", x: 0.16, y: 0.14, rot: -6 },
-    { id: "s-coffee", emoji: "☕", x: 0.93, y: 0.55, rot: 12, lvl: "med" },
-    { id: "s-cry", emoji: "🥹", x: 0.12, y: 0.5, rot: -10, lvl: "med" },
-    { id: "s-kiss", emoji: "💋", x: 0.7, y: 0.82, rot: -14, lvl: "med" },
-    { id: "s-cameo1", cameo: paintings.bronzino(360), cpos: "center 30%", x: 0.04, y: 0.84, rot: -6, lvl: "high" },
-    { id: "s-cameo2", cameo: paintings.venus(360), cpos: "60% 18%", x: 0.9, y: 0.34, rot: 8, lvl: "high" },
-    { id: "s-heart2", el: true, render: <HeartSvg size={30} fill="var(--ember)" />, x: 0.62, y: 0.1, rot: 14, kind: "shape", lvl: "high" }
+    { id: "s-heart1", el: <div className="sticker shape" />, render: <HeartSvg size={42} fill="var(--pink)" />, x: 0.03, y: 0.46, rot: -12, kind: "shape" },
+    { id: "s-emoji-love", emoji: "😍", x: 0.95, y: 0.12, rot: 10 },
+    { id: "s-rose", emoji: "🌹", x: 0.96, y: 0.66, rot: -8 },
+    { id: "s-wine", emoji: "🍷", x: 0.03, y: 0.2, rot: 8 },
+    { id: "s-flag", emoji: "🚩", x: 0.95, y: 0.4, rot: 6 },
+    { id: "s-spark", emoji: "✨", x: 0.1, y: 0.1, rot: -6 },
+    { id: "s-coffee", emoji: "☕", x: 0.04, y: 0.64, rot: 12, lvl: "med" },
+    { id: "s-cry", emoji: "🥹", x: 0.96, y: 0.52, rot: -10, lvl: "med" },
+    { id: "s-kiss", emoji: "💋", x: 0.06, y: 0.32, rot: -14, lvl: "med" },
+    { id: "s-cameo1", cameo: paintings.bronzino(360), cpos: "center 30%", x: 0.02, y: 0.78, rot: -6, lvl: "high" },
+    { id: "s-cameo2", cameo: paintings.venus(360), cpos: "60% 18%", x: 0.93, y: 0.24, rot: 8, lvl: "high" },
+    { id: "s-heart2", el: true, render: <HeartSvg size={28} fill="var(--ember)" />, x: 0.9, y: 0.82, rot: 14, kind: "shape", lvl: "high" }
   ];
   const levels = density === "low" ? ["base"] : density === "med" ? ["base", "med"] : ["base", "med", "high"];
   const show = all.filter((s) => levels.includes(s.lvl ? s.lvl : "base"));
