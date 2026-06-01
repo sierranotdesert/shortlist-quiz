@@ -1,7 +1,7 @@
 /* app.jsx — state machine, tweaks, mount */
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "homeVariant": "gallery",
+  "homeVariant": "collage",
   "accent": "#FF5C8A",
   "heartCursor": true,
   "stickers": "med",
@@ -30,7 +30,7 @@ function App() {
   const startQuiz = (id) => { setStage(id); setScreen("quiz"); };
   const finish = (s, st, bd) => { setScore(s); setStage(st); setBreakdown(bd || null); setScreen("result"); };
 
-  const Home = { gallery: HomeA, collage: HomeB, dossier: HomeC }[t.homeVariant] || HomeA;
+  const Home = t.homeVariant === "gallery" ? HomeA : HomeB;
 
   return (
     <div className="app-root">
@@ -46,7 +46,7 @@ function App() {
       {screen === "home" && (
         <div className="variant-switch">
           <span className="vs-label script">try a look:</span>
-          {[["gallery", "Gallery"], ["collage", "Collage"], ["dossier", "Dossier"]].map(([v, l]) => (
+          {[["collage", "Collage"], ["gallery", "Gallery"]].map(([v, l]) => (
             <button key={v} className={"vs-btn" + (t.homeVariant === v ? " on" : "")} onClick={() => setTweak("homeVariant", v)}>{l}</button>
           ))}
         </div>
@@ -54,7 +54,7 @@ function App() {
 
       <TweaksPanel>
         <TweakSection label="Home screen" />
-        <TweakRadio label="Direction" value={t.homeVariant} options={["gallery", "collage", "dossier"]} onChange={(v) => setTweak("homeVariant", v)} />
+        <TweakRadio label="Direction" value={t.homeVariant} options={["collage", "gallery"]} onChange={(v) => setTweak("homeVariant", v)} />
         <TweakSection label="Flirty details" />
         <TweakColor label="Accent" value={t.accent} options={["#FF5C8A", "#FF8A3D", "#E8C46B", "#C9184A", "#7A5AE0"]} onChange={(v) => setTweak("accent", v)} />
         <TweakToggle label="Heart cursor + sparkles" value={t.heartCursor} onChange={(v) => setTweak("heartCursor", v)} />

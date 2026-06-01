@@ -1,11 +1,11 @@
-/* screens-home.jsx — 3 home directions: Gallery, Collage, Dossier */
+/* screens-home.jsx — two home directions: Gallery + Collage */
 
 /* Shared little brand mark */
 function Logo({ light }) {
   return <div className={"logo script" + (light ? " light" : "")}>amoré</div>;
 }
 
-/* ---------- A · The Gallery (faithful to the Editions look) ---------- */
+/* ---------- The Gallery (faithful to the Editions look) ---------- */
 function HomeA({ onBegin, goStage }) {
   return (
     <div className="screen fade-enter">
@@ -19,7 +19,7 @@ function HomeA({ onBegin, goStage }) {
         <div className="ha-herocopy wrap">
           <span className="eyebrow">A brutally honest love reading</span>
           <h1 className="display ha-h1">THE<br />ONE?</h1>
-          <p className="serif ha-sub">Is&nbsp;(s)he your person — or your next cautionary tale?<br />Let the old masters be the judge.</p>
+          <p className="serif ha-sub">Are&nbsp;they your person — or your next cautionary tale?<br />Let the old masters be the judge.</p>
         </div>
       </section>
       <section className="ha-foot wrap">
@@ -45,7 +45,7 @@ function HomeA({ onBegin, goStage }) {
   );
 }
 
-/* ---------- B · Cherub Collage (cutesy, blush, scrapbook) ---------- */
+/* ---------- The Cherub Collage (cutesy, blush, scrapbook) ---------- */
 function HomeB({ onBegin }) {
   return (
     <div className="screen fade-enter hb">
@@ -75,29 +75,4 @@ function HomeB({ onBegin }) {
   );
 }
 
-/* ---------- C · The Dossier (editorial love-letter card) ---------- */
-function HomeC({ onBegin, goStage }) {
-  return (
-    <div className="screen fade-enter hc">
-      <img className="hc-bg" src={PAINT.hayez(1200)} alt="" draggable="false" />
-      <div className="hc-veil"></div>
-      <header className="hc-top wrap"><Logo light /><span className="eyebrow hide-mobile" style={{ color: "var(--blush)" }}>Confidential</span></header>
-      <div className="hc-card">
-        <div className="hc-seal">♡</div>
-        <span className="eyebrow">Confidential love dossier № 001</span>
-        <h1 className="serif hc-h1">Is this <em>the&nbsp;one</em>?</h1>
-        <p className="serif hc-lede">A discreet, slightly merciless investigation into whether your beloved is forever — or just for now. The court of Renaissance opinion awaits.</p>
-        <div className="hc-stages">
-          {STAGES.map((s) => (
-            <button key={s.id} className="hc-chip" onClick={() => goStage(s.id)}>
-              <span className="hc-chip-num serif">{s.num}</span>{s.short}
-            </button>
-          ))}
-        </div>
-        <button className="btn btn-gold hc-go" onClick={onBegin}>Open the case file</button>
-      </div>
-    </div>
-  );
-}
-
-Object.assign(window, { HomeA, HomeB, HomeC, Logo });
+Object.assign(window, { HomeA, HomeB, Logo });

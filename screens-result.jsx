@@ -4,38 +4,92 @@ function pickResult(score) {
   return RESULTS.find((r) => score >= r.min) || RESULTS[RESULTS.length - 1];
 }
 
-/* Saves this reading to the signed-in initials (once), and shows past scores
-   for this stage so you can watch a person trend over time. */
+/* Auto-saves this reading at the end. You can opt out, name who it's about
+   ("do it for someone else"), and jump to your personal ranking. */
 function ResultSaver({ entry }) {
   const { active } = window.useProfile();
-  const saved = useRef(false);
+  const [who, setWho] = useState("");
+  const [yourName, setYourName] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [out, setOut] = useState(false);
+  const did = useRef(false);
+  // Stable snapshot with one id, so re-saves/edits hit the same local + remote row.
+  const eRef = useRef(null);
+  if (!eRef.current) eRef.current = Object.assign({ id: window.LQ.uid(), who: "" }, entry);
+  const E = eRef.current;
+
+  // Logged in → auto-save once on arrival.
   useEffect(() => {
-    if (!saved.current && active) { saved.current = true; window.LQ.save(active, entry); }
+    if (did.current || out || !active) return;
+    did.current = true; setSaved(true);
+    window.LQ.save(active, E);
   }, [active]);
 
-  if (!active) {
+  // Keep the saved reading's subject in sync as you type.
+  useEffect(() => {
+    if (saved && active) window.LQ.patchLast(active, { who: window.LQ.normName(who) });
+  }, [who]);
+
+  const openRanking = () => window.dispatchEvent(new Event("lq-open-ranking"));
+  const undo = () => { if (active) window.LQ.removeLast(active); did.current = true; setSaved(false); setOut(true); };
+  const redo = () => { if (active) { window.LQ.save(active, Object.assign({}, E, { who: window.LQ.normName(who) })); did.current = true; setSaved(true); setOut(false); } };
+  const saveAs = () => {
+    const me = window.LQ.setActive(yourName);
+    if (me) { window.LQ.save(me, Object.assign({}, E, { who: window.LQ.normName(who) })); did.current = true; setSaved(true); setOut(false); }
+  };
+
+  // Logged in + saved (default at the end).
+  if (active && saved) {
     return (
       <div className="rs-save">
-        <span className="eyebrow" style={{ color: "var(--accent)" }}>Keep your scores ♡</span>
-        <p className="serif rs-save-lbl">Pick a username to track this person over time:</p>
-        <window.NameForm primary onSave={(v) => { window.LQ.setActive(v); window.LQ.save(v, entry); saved.current = true; }} />
+        <span className="eyebrow" style={{ color: "var(--accent)" }}>Saved to {active}'s log ♡</span>
+        <p className="serif rs-save-lbl">Who is this reading about?</p>
+        <input className="lq-input" maxLength={24} placeholder="their name (optional)" value={who}
+          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 24))} />
+        <div className="rs-save-row">
+          <button className="btn btn-ghost btn-sm" onClick={openRanking}>See your ranking ♡</button>
+          <button className="lq-signout" onClick={undo}>Don't save this one</button>
+        </div>
       </div>
     );
   }
-  const past = window.LQ.history(active).filter((e) => e.stage === entry.stage);
+  // Logged in but opted out.
+  if (active && out) {
+    return (
+      <div className="rs-save">
+        <span className="eyebrow" style={{ color: "var(--fg-dim)" }}>Not saved</span>
+        <p className="serif rs-save-lbl" style={{ margin: "0 0 12px" }}>This reading wasn't added to your log.</p>
+        <button className="btn btn-primary btn-sm" onClick={redo}>Save it anyway ♡</button>
+      </div>
+    );
+  }
+  // Logged out, skipped.
+  if (!active && out) {
+    return (
+      <div className="rs-save">
+        <span className="eyebrow" style={{ color: "var(--fg-dim)" }}>Not saved</span>
+        <p className="serif rs-save-lbl" style={{ margin: "0 0 12px" }}>Add a name any time to start keeping a log.</p>
+        <button className="btn btn-primary btn-sm" onClick={() => setOut(false)}>Save this reading ♡</button>
+      </div>
+    );
+  }
+  // Logged out → offer to save (for yourself, or for someone else).
   return (
     <div className="rs-save">
-      <span className="eyebrow" style={{ color: "var(--accent)" }}>Saved to {active} ♡</span>
-      {past.length > 1 ? (
-        <div className="rs-save-hist">
-          <span className="serif rs-save-lbl" style={{ margin: 0 }}>Your {entry.stageLabel} scores:</span>
-          {past.slice(0, 6).map((e, i) => (
-            <span key={i} className={"rs-chip" + (i === 0 ? " now" : "")}>{e.score}%</span>
-          ))}
-        </div>
-      ) : (
-        <p className="serif rs-save-lbl" style={{ margin: 0 }}>Score this stage again later to see if the verdict shifts.</p>
-      )}
+      <span className="eyebrow" style={{ color: "var(--accent)" }}>Save this reading ♡</span>
+      <p className="serif rs-save-lbl">Log it to track them over time and build your ranking:</p>
+      <div className="rs-save-fields">
+        <input className="lq-input" maxLength={24} placeholder="your name" value={yourName}
+          onChange={(e) => setYourName(e.target.value.replace(/^\s+/, "").slice(0, 24))}
+          onKeyDown={(e) => { if (e.key === "Enter") saveAs(); }} />
+        <input className="lq-input" maxLength={24} placeholder="who you're rating (optional)" value={who}
+          onChange={(e) => setWho(e.target.value.replace(/^\s+/, "").slice(0, 24))}
+          onKeyDown={(e) => { if (e.key === "Enter") saveAs(); }} />
+      </div>
+      <div className="rs-save-row">
+        <button className="btn btn-primary btn-sm" disabled={!yourName.trim()} onClick={saveAs}>Save ♡</button>
+        <button className="lq-signout" onClick={() => setOut(true)}>Skip</button>
+      </div>
     </div>
   );
 }
@@ -160,7 +214,7 @@ function adviceTake(score, stage) {
   const yr = stage === "year";
   if (score >= 86) return yr ? "A year in and scoring this high? This is the one your friends will be insufferably happy about. Don't overthink it." : "Early, but this is rare air. Keep showing up and let it cook.";
   if (score >= 65) return "Real potential. The bones are good — the work now is consistency, not chemistry. Stop waiting for a reason to bail.";
-  if (score >= 42) return "Genuinely a coin-flip. Define what you actually want, then see if he's building it with you — or just keeping you around. No more vibes-only.";
+  if (score >= 42) return "Genuinely a coin-flip. Define what you actually want, then see if they're building it with you — or just keeping you around. No more vibes-only.";
   if (score >= 20) return "The fun is loud and the warnings are louder. Have one honest conversation; if nothing changes, believe the data, not the butterflies.";
   return "We say this with love: the score isn't shy. Protect your peace, keep your standards, and free up the calendar for someone who clears the bar.";
 }
